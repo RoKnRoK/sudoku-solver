@@ -1,5 +1,10 @@
 package com.rok.solver;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Arrays;
+import java.util.Scanner;
+
 /**
  * Created by RoK.
  * All rights reserved =)
@@ -44,21 +49,29 @@ public class SudokuSolver {
     }
 
 
-
-    public static void main(String[] args) {
-        int[][] field = {
-                {-1, 1, 3, 8, -1, -1, 4, -1, 5},
-                {-1, 2, 4, 6, -1, 5, -1, -1, -1},
-                {-1, 8, 7, -1, -1, -1, 9, 3, -1},
-                {4, 9, -1, 3, -1, 6, -1, -1, -1},
-                {-1, -1, 1, -1, -1, -1, 5, -1, -1},
-                {-1, -1, -1, 7, -1, 1, -1, 9, 3},
-                {-1, 6, 9, -1, -1, -1, 7, 4, -1},
-                {-1, -1, -1, 2, -1, 7, 6, 8, -1},
-                {1, -1, 2, -1, -1, 8, 3, 5, -1}};
+    public static void main(String[] args) throws FileNotFoundException {
+        int[][] field = new int[MAGIC_SUDOKU_NUMBER][MAGIC_SUDOKU_NUMBER];
 
 
-        new SudokuSolver(field).solve();
+//        Scanner input = new Scanner(SudokuSolver.class.getResourceAsStream("./sudoku.txt"));
+        Scanner input = new Scanner(new File("./sudoku.txt"));
+
+        for (int i = 0; i < MAGIC_SUDOKU_NUMBER; ++i) {
+            String row = input.nextLine();
+            Scanner rowScanner = new Scanner(row);
+            rowScanner.useDelimiter(",");
+            for (int j = 0; j < MAGIC_SUDOKU_NUMBER; ++j) {
+                if (rowScanner.hasNextInt()) {
+                    field[i][j] = rowScanner.nextInt();
+                }
+            }
+        }
+
+        int[][] solved = new SudokuSolver(field).solve();
+        Arrays.stream(solved).forEach(row -> {
+            Arrays.stream(row).forEach(item -> System.out.print(item + ", "));
+            System.out.println();
+        });
 
     }
 }
