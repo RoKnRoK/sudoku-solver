@@ -17,22 +17,28 @@ public class Coords {
     }
 
     public Coords ofOtherType(AreaType type) {
-        if (type == this.areaType) {return this;}
+        if (type == this.areaType) {
+            return this;
+        }
 
         if (type == AreaType.BLOCK) {
-            int i = 3*(areaIndex/3) + (indexInArea/3);
-            int j = 3*(areaIndex%3) + (indexInArea%3);
-            if (this.areaType == AreaType.ROW)
+            if (this.areaType == AreaType.ROW) {
+                int i = 3 * (areaIndex / 3) + (indexInArea / 3);
+                int j = 3 * (areaIndex % 3) + (indexInArea % 3);
                 return new Coords(i, j, type);
-            if (this.areaType == AreaType.COLUMN)
-                return new Coords(j, i, type);
+            }
+            if (this.areaType == AreaType.COLUMN) {
+                int i = 3 * (indexInArea / 3) + (areaIndex / 3);
+                int j = 3 * (indexInArea % 3) + (areaIndex % 3);
+                return new Coords(i, j, type);
+            }
         }
         if (type == AreaType.ROW) {
             if (this.areaType == AreaType.COLUMN)
                 return new Coords(indexInArea, areaIndex, type);
             if (this.areaType == AreaType.BLOCK) {
-                int i = 3 * (areaIndex / 3) ;
-                int j = indexInArea/3;
+                int i = 3 * (areaIndex / 3) + (indexInArea / 3);
+                int j = 3 * (areaIndex % 3) + (indexInArea % 3);
                 return new Coords(i, j, type);
             }
         }
@@ -41,8 +47,8 @@ public class Coords {
             if (this.areaType == AreaType.ROW)
                 return new Coords(indexInArea, areaIndex, type);
             if (this.areaType == AreaType.BLOCK) {
-                int i = indexInArea/3;
-                int j = 3 * (areaIndex / 3) ;
+                int i = 3 * (areaIndex % 3) + (indexInArea % 3);
+                int j = 3 * (areaIndex / 3) + (indexInArea / 3);
                 return new Coords(i, j, type);
             }
         }

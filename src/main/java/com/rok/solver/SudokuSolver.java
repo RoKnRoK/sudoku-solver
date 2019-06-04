@@ -33,6 +33,7 @@ public class SudokuSolver {
         do {
             for (int k = 0; k < 3; k++) {
                 for (int i = 0; i < MAGIC_SUDOKU_NUMBER; i++) {
+//                System.out.println("Checking " + AreaType.fromId(k) + " #" + i);
                     AreaType areaType = AreaType.fromId(k);
                     for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
                         if (fieldInfo.getFromField(new Coords(i, j, areaType)) == -1) {
@@ -46,20 +47,11 @@ public class SudokuSolver {
         return field;
     }
 
-    public int calcBlock(int row, int column) {
-        return 3 * (row / 3) + column / 3;
-    }
-
-    public FieldInfo getFieldInfo() {
-        return fieldInfo;
-    }
-
     public class FieldInfo {
         private final String ALL_MISSING = "123456789";
         private int totalMissing = 81;
 
         String[][] missingNumbers = new String[3][MAGIC_SUDOKU_NUMBER];
-        String[][] missingIndices = new String[3][MAGIC_SUDOKU_NUMBER];
         String[][] presentNumbers = new String[3][MAGIC_SUDOKU_NUMBER];
         private int[][] field;
 
@@ -82,7 +74,7 @@ public class SudokuSolver {
 
             int[] normal = coords.toNormal();
             field[normal[0]][normal[1]] = number;
-            System.out.println("Row " + normal[0] + ", column " + normal[1] + " found: " + number);
+            System.out.println("Row " + (normal[0] + 1) + ", column " + (normal[1] + 1) + " found: " + number);
             totalMissing -= 1;
             System.out.println(totalMissing);
         }
@@ -96,8 +88,6 @@ public class SudokuSolver {
             presentNumbers[areaType.getAreaId()][areaIndex] += number;
             missingNumbers[areaType.getAreaId()][areaIndex] =
                     missingNumbers[areaType.getAreaId()][areaIndex].replace(Integer.toString(number), "");
-            // missingIndices[areaType.getAreaId()][areaIndex] =
-            //          missingIndices[areaType.getAreaId()][areaIndex].replace(Integer.toString(number), "")
         }
 
         public void print() {
@@ -125,13 +115,6 @@ public class SudokuSolver {
         }
 
         private String getMissingOrPresentInArea(Coords coords, String[][] array) {
-           /* int areaIndex;
-            switch (areaType) {
-                case ROW: areaIndex = row; break;
-                case COLUMN: areaIndex = column; break;
-                case BLOCK: areaIndex = calcBlock(row, column); break;
-                default: throw new IllegalArgumentException();
-            }*/
             return array[coords.getAreaType().getAreaId()][coords.getAreaIndex()];
         }
 
