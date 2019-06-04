@@ -1,22 +1,51 @@
 package com.rok.solver;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Created by RoK.
  * All rights reserved =)
  */
-public class Coords {
+class Coords {
 
     private final int areaIndex;
     private int indexInArea;
     private final AreaType areaType;
 
-    public Coords(int areaIndex, int indexInArea, AreaType areaType) {
+    private final Map<AreaType, Coords> representation = new HashMap<>();
+
+    private int[] normal;
+
+    Coords(int areaIndex, int indexInArea, AreaType areaType) {
         this.areaIndex = areaIndex;
         this.indexInArea = indexInArea;
         this.areaType = areaType;
     }
 
-    public Coords ofOtherType(AreaType type) {
+    Coords withRepresentation() {
+        Set<AreaType> areaTypes = new HashSet<>(Arrays.asList(AreaType.values()));
+        areaTypes.remove(this.areaType);
+        areaTypes.forEach(type -> {
+            representation.put(type, ofOtherType(type));
+        });
+        representation.put(areaType, this);
+        representation.values().forEach(item -> {
+            item.representation.putAll(representation);
+            item.normal = new int[]{representation.get(AreaType.ROW).getAreaIndex(), representation.get(AreaType.ROW).getIndexInArea()};
+        });
+        normal = new int[]{representation.get(AreaType.ROW).getAreaIndex(), representation.get(AreaType.ROW).getIndexInArea()};
+        return this;
+    }
+
+    Coords toType(AreaType type) {
+        return representation.get(type);
+    };
+
+    private Coords ofOtherType(AreaType type) {
         if (type == this.areaType) {
             return this;
         }
@@ -56,41 +85,20 @@ public class Coords {
         throw new IllegalStateException();
     }
 
-    public int[] toNormal() {
-        int[] result = new int[2];
-        switch (areaType) {
-            case ROW: {
-                result[0] = areaIndex;
-                result[1] = indexInArea;
-            }
-            break;
-            case COLUMN: {
-                result[0] = indexInArea;
-                result[1] = areaIndex;
-            }
-            break;
-            case BLOCK: {
-                result[0] = 3 * (areaIndex / 3) + (indexInArea / 3);
-                result[1] = 3 * (areaIndex % 3) + (indexInArea % 3);
-            }
-            break;
-        }
-        return result;
+    int[] asNormal() {
+        return normal;
     }
 
-    public AreaType getAreaType() {
+    AreaType getAreaType() {
         return this.areaType;
     }
 
-    public int getAreaIndex() {
+    int getAreaIndex() {
         return this.areaIndex;
     }
 
-    public int getIndexInArea() {
-        return this.indexInArea;
+    private int getIndexInArea() {
+        return indexInArea;
     }
 
-    public void setIndexInArea(int indexInArea) {
-        this.indexInArea = indexInArea;
-    }
 }

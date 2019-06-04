@@ -6,17 +6,18 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedList;
 
-public class FieldInfo {
+class FieldInfo {
     private final String ALL_MISSING = "123456789";
     private int totalMissing = 81;
 
     private String[][] missingNumbers = new String[3][MAGIC_SUDOKU_NUMBER];
     private String[][] presentNumbers = new String[3][MAGIC_SUDOKU_NUMBER];
     private int[][] field;
+    private final Coords[][] coords = new Coords[MAGIC_SUDOKU_NUMBER][MAGIC_SUDOKU_NUMBER];
 
     private Deque<FieldInfo> snapshots = new LinkedList<>();
 
-    public FieldInfo(int[][] field) {
+    FieldInfo(int[][] field) {
         this.field = Arrays.stream(field).map(int[]::clone).toArray(int[][]::new);
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
@@ -27,29 +28,28 @@ public class FieldInfo {
         init();
     }
 
-
     private void init() {
         for (int i = 0; i < MAGIC_SUDOKU_NUMBER; i++) {
             for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
+                coords[i][j] = new Coords(i, j, AreaType.ROW).withRepresentation();
                 if (field[i][j] != -1) {
-                    this.addPresent(new Coords(i, j, AreaType.ROW), field[i][j]);
+                    this.addPresent(coords[i][j], field[i][j]);
                 }
             }
         }
     }
 
-    public void addPresent(Coords coords, int number) {
+    void addPresent(Coords coords, int number) {
         AreaType areaType = coords.getAreaType();
         int[] intercepting = areaType.getIntercepting();
         addPresentToArea(coords, number);
-        addPresentToArea(coords.ofOtherType(AreaType.fromId(intercepting[0])), number);
-        addPresentToArea(coords.ofOtherType(AreaType.fromId(intercepting[1])), number);
+        addPresentToArea(coords.toType(AreaType.fromId(intercepting[0])), number);
+        addPresentToArea(coords.toType(AreaType.fromId(intercepting[1])), number);
 
-        int[] normal = coords.toNormal();
+        int[] normal = coords.asNormal();
         field[normal[0]][normal[1]] = number;
-        System.out.println("Row " + (normal[0] + 1) + ", column " + (normal[1] + 1) + " found: " + number);
+//        System.out.println("Row " + (normal[0] + 1) + ", column " + (normal[1] + 1) + " set to " + number);
         totalMissing -= 1;
-        System.out.println(totalMissing);
     }
 
     private void addPresentToArea(Coords coords, int number) {
@@ -59,33 +59,15 @@ public class FieldInfo {
             throw new IllegalArgumentException("Unknown AreaType " + areaType + " passed!");
         }
         presentNumbers[areaType.getAreaId()][areaIndex] += number;
-        //  System.out.println("Present " + presentNumbers[areaType.getAreaId()][areaIndex]);
         missingNumbers[areaType.getAreaId()][areaIndex] =
                 missingNumbers[areaType.getAreaId()][areaIndex].replace(Integer.toString(number), "");
-        //   System.out.println("Missing " + missingNumbers[areaType.getAreaId()][areaIndex]);
     }
-/*
-        public void print() {
-            for (int i = 0; i < 3; i++) {
-                System.out.println("Present in " + AreaType.fromId(i) + ": ");
-                for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
-                    System.out.println(presentNumbers[i][j]);
-                }
-            }
 
-            for (int i = 0; i < 3; i++) {
-                System.out.println("Missing in " + AreaType.fromId(i) + ": ");
-                for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
-                    System.out.println(missingNumbers[i][j]);
-                }
-            }
-        }*/
-
-    public String getMissingInArea(Coords coords) {
+    String getMissingInArea(Coords coords) {
         return getMissingOrPresentInArea(coords, missingNumbers);
     }
 
-    public String getPresentInArea(Coords coords) {
+    String getPresentInArea(Coords coords) {
         return getMissingOrPresentInArea(coords, presentNumbers);
     }
 
@@ -93,28 +75,51 @@ public class FieldInfo {
         return array[coords.getAreaType().getAreaId()][coords.getAreaIndex()];
     }
 
-    public boolean isFilled() {
+    boolean isFilled() {
         return totalMissing == 0;
     }
 
-    public int[][] getField() {
+    int[][] getField() {
         return field;
     }
 
-    public int getFromField(Coords coords) {
-        int[] normal = coords.toNormal();
+    int getCellValue(Coords coords) {
+        int[] normal = coords.asNormal();
         return field[normal[0]][normal[1]];
     }
 
-    public int getTotalMissing() {
+    Coords getCellCoords(int areaIndex, int indexInArea, AreaType areaType) {
+        int i, j;
+        switch (areaType) {
+            case ROW: {
+                i = areaIndex;
+                j = indexInArea;
+            }
+            break;
+            case COLUMN: {
+                i = indexInArea;
+                j = areaIndex;
+            }
+            break;
+            case BLOCK: {
+                i = 3 * (areaIndex / 3) + (indexInArea / 3);
+                j = 3 * (areaIndex % 3) + (indexInArea % 3);
+            }
+            break;
+            default: throw new IllegalStateException();
+        }
+
+        return coords[i][j].toType(areaType);
+    }
+
+    int getTotalMissing() {
         return this.totalMissing;
     }
 
-    public void createSnapshot(Coords coords, Character number) {
+    void createSnapshot(Coords coords, Character number) {
         FieldInfo copy = this.copy();
         copy.addPresent(coords, Character.getNumericValue(number));
         snapshots.addFirst(copy);
-        // System.out.println("Snapshot created");
     }
 
     private FieldInfo copy() {
@@ -125,24 +130,7 @@ public class FieldInfo {
         return copy;
     }
 
-    public boolean hasConflicts(Coords coords) {
-        System.out.println("Check conflicts");
-        int[] normal = coords.toNormal();
-        int blockIndex = coords.ofOtherType(AreaType.BLOCK).getAreaIndex();
-        int rowIndex = normal[0];
-        int columnIndex = normal[1];
-
-        return hasDuplicates(presentNumbers[0][rowIndex]) &&
-                hasDuplicates(presentNumbers[1][columnIndex]) &&
-                hasDuplicates(presentNumbers[2][blockIndex]);
-    }
-
-    private boolean hasDuplicates(String s) {
-        return Strategy.stringToSet(s).size() < s.length();
-    }
-
-    public void rollback() {
-        System.out.println("Rollback...");
+    void rollback() {
         FieldInfo snapshot = snapshots.removeFirst();
         this.field = Arrays.stream(snapshot.field).map(int[]::clone).toArray(int[][]::new);
         this.missingNumbers = Arrays.stream(snapshot.missingNumbers).map(String[]::clone).toArray(String[][]::new);

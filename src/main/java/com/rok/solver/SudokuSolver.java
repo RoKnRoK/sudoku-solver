@@ -25,15 +25,16 @@ public class SudokuSolver {
 //                System.out.println("Checking " + AreaType.fromId(k) + " #" + i);
                     AreaType areaType = AreaType.fromId(k);
                     for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) { // works from j = i as well
-                        if (fieldInfo.getFromField(new Coords(i, j, areaType)) == -1) {
+                        Coords cellCoords = fieldInfo.getCellCoords(i, j, areaType);
+                        if (fieldInfo.getCellValue(cellCoords) == -1) {
                             Strategy strategy = isStuck ? Strategy.RANDOM_PICK : Strategy.NOTHING_EXCEPT_ONE_NUMBER;
-                            boolean filled = strategy.tryFill(new Coords(i, j, areaType), fieldInfo);
+                            boolean filled = strategy.tryFill(cellCoords, fieldInfo);
                             if (strategy == Strategy.RANDOM_PICK) {
                                 isStuck = !filled;
                             }
                         }
                     }
-                    Strategy.NOWHERE_EXCEPT_ONE_CELL.tryFill(new Coords(i, -1, areaType), fieldInfo);
+                    Strategy.NOWHERE_EXCEPT_ONE_CELL.tryFill(fieldInfo.getCellCoords(i, 0, areaType), fieldInfo);
                 }
             }
             totalMissingAfter = fieldInfo.getTotalMissing();

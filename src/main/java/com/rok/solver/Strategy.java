@@ -16,12 +16,13 @@ public enum Strategy {
             Set<Character> missingInArea = stringToSet(fieldInfo.getMissingInArea(coords));
 
             int[] intercepting = areaType.getIntercepting();
-            Set<Character> presentInIntercepting1 = stringToSet(fieldInfo.getPresentInArea(coords.ofOtherType(AreaType.fromId(intercepting[0]))));
-            Set<Character> presentInIntercepting2 = stringToSet(fieldInfo.getPresentInArea(coords.ofOtherType(AreaType.fromId(intercepting[1]))));
+            Set<Character> presentInIntercepting1 = stringToSet(fieldInfo.getPresentInArea(coords.toType(AreaType.fromId(intercepting[0]))));
+            Set<Character> presentInIntercepting2 = stringToSet(fieldInfo.getPresentInArea(coords.toType(AreaType.fromId(intercepting[1]))));
 
             missingInArea.removeAll(presentInIntercepting1);
             missingInArea.removeAll(presentInIntercepting2);
 
+//            System.out.println(missingInArea);
             if (missingInArea.size() == 1) {
                 Character found = missingInArea.iterator().next();
                 fieldInfo.addPresent(coords, Character.getNumericValue(found));
@@ -38,12 +39,12 @@ public enum Strategy {
             List<String> canPut = new ArrayList<>();
             Set<Character> missingInArea = stringToSet(fieldInfo.getMissingInArea(coords));
             for (int j = 0; j < SudokuSolver.MAGIC_SUDOKU_NUMBER; j++) {
-                coords.setIndexInArea(j);
-                if (fieldInfo.getFromField(coords) == -1) {
+                Coords coords1 = fieldInfo.getCellCoords(coords.getAreaIndex(), j, areaType);
+                if (fieldInfo.getCellValue(coords1) == -1) {
                     empties.add(j);
                     int[] intercepting = areaType.getIntercepting();
-                    String cannotPut = fieldInfo.getPresentInArea(coords.ofOtherType(AreaType.fromId(intercepting[0]))) +
-                            fieldInfo.getPresentInArea(coords.ofOtherType(AreaType.fromId(intercepting[1])));
+                    String cannotPut = fieldInfo.getPresentInArea(coords1.toType(AreaType.fromId(intercepting[0]))) +
+                            fieldInfo.getPresentInArea(coords1.toType(AreaType.fromId(intercepting[1])));
                     Set<Character> copy = new HashSet<>(missingInArea);
                     copy.removeAll(Strategy.stringToSet(cannotPut));
                     canPut.add(Strategy.setToString(copy));
@@ -66,7 +67,7 @@ public enum Strategy {
             for (int i = 0; i < split.length; i++) {
                 String item = split[i];
                 if (item.length() == 1) {
-                    fieldInfo.addPresent(new Coords(coords.getAreaIndex(), empties.get(i), areaType), Integer.parseInt(split[i]));
+                    fieldInfo.addPresent(fieldInfo.getCellCoords(coords.getAreaIndex(), empties.get(i), areaType), Integer.parseInt(split[i]));
                     return true;
                 }
             }
@@ -81,8 +82,8 @@ public enum Strategy {
             Set<Character> missingInArea = stringToSet(fieldInfo.getMissingInArea(coords));
 
             int[] intercepting = areaType.getIntercepting();
-            Set<Character> presentInIntercepting1 = stringToSet(fieldInfo.getPresentInArea(coords.ofOtherType(AreaType.fromId(intercepting[0]))));
-            Set<Character> presentInIntercepting2 = stringToSet(fieldInfo.getPresentInArea(coords.ofOtherType(AreaType.fromId(intercepting[1]))));
+            Set<Character> presentInIntercepting1 = stringToSet(fieldInfo.getPresentInArea(coords.toType(AreaType.fromId(intercepting[0]))));
+            Set<Character> presentInIntercepting2 = stringToSet(fieldInfo.getPresentInArea(coords.toType(AreaType.fromId(intercepting[1]))));
 
             missingInArea.removeAll(presentInIntercepting1);
             missingInArea.removeAll(presentInIntercepting2);
@@ -91,7 +92,7 @@ public enum Strategy {
                 Iterator<Character> iterator = missingInArea.iterator();
                 Character firstPossibility = iterator.next();
                 Character secondPossibility = iterator.next();
-//                System.out.println("Will randomly set " + firstPossibility + " to " + Arrays.toString(coords.toNormal()) + " and see what'll happen");
+//                System.out.println("Will randomly set " + firstPossibility + " to " + Arrays.toString(coords.asNormal()) + " and see what'll happen");
                 fieldInfo.createSnapshot(coords, secondPossibility);
                 fieldInfo.addPresent(coords, Character.getNumericValue(firstPossibility));
                 return true;
@@ -104,9 +105,6 @@ public enum Strategy {
             return false;
         }
     };
-
-
-
 
     abstract public boolean tryFill(Coords coords, FieldInfo fieldInfo);
 
