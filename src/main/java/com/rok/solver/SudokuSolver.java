@@ -8,129 +8,40 @@ public class SudokuSolver {
 
     static final int MAGIC_SUDOKU_NUMBER = 9;
 
-    private final int[][] field;
     private FieldInfo fieldInfo;
 
     SudokuSolver(int[][] field) {
-        this.field = field;
         this.fieldInfo = new FieldInfo(field);
-        analyze();
     }
 
-
-    private void analyze() {
-        for (int i = 0; i < MAGIC_SUDOKU_NUMBER; i++) {
-            for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
-                if (field[i][j] != -1) {
-                    fieldInfo.addPresent(new Coords(i, j, AreaType.ROW), field[i][j]);
-                }
-            }
-        }
-        fieldInfo.print();
-    }
 
     public int[][] solve() {
+        int totalMissingBefore, totalMissingAfter;
+        boolean isStuck = false;
         do {
+            totalMissingBefore = fieldInfo.getTotalMissing();
             for (int k = 0; k < 3; k++) {
                 for (int i = 0; i < MAGIC_SUDOKU_NUMBER; i++) {
 //                System.out.println("Checking " + AreaType.fromId(k) + " #" + i);
                     AreaType areaType = AreaType.fromId(k);
-                    for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
+                    for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) { // works from j = i as well
                         if (fieldInfo.getFromField(new Coords(i, j, areaType)) == -1) {
-                            Strategy.NOTHING_EXCEPT_ONE_NUMBER.tryFill(new Coords(i, j, areaType), fieldInfo);
+                            Strategy strategy = isStuck ? Strategy.RANDOM_PICK : Strategy.NOTHING_EXCEPT_ONE_NUMBER;
+                            boolean filled = strategy.tryFill(new Coords(i, j, areaType), fieldInfo);
+                            if (strategy == Strategy.RANDOM_PICK) {
+                                isStuck = !filled;
+                            }
                         }
                     }
                     Strategy.NOWHERE_EXCEPT_ONE_CELL.tryFill(new Coords(i, -1, areaType), fieldInfo);
                 }
             }
+            totalMissingAfter = fieldInfo.getTotalMissing();
+            isStuck = totalMissingBefore == totalMissingAfter;
         } while (!fieldInfo.isFilled());
-        return field;
+        return fieldInfo.getField();
     }
 
-    public class FieldInfo {
-        private final String ALL_MISSING = "123456789";
-        private int totalMissing = 81;
-
-        String[][] missingNumbers = new String[3][MAGIC_SUDOKU_NUMBER];
-        String[][] presentNumbers = new String[3][MAGIC_SUDOKU_NUMBER];
-        private int[][] field;
-
-        public FieldInfo(int[][] field) {
-            this.field = field;
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
-                    missingNumbers[i][j] = ALL_MISSING;
-                    presentNumbers[i][j] = "";
-                }
-            }
-        }
-
-        public void addPresent(Coords coords, int number) {
-            AreaType areaType = coords.getAreaType();
-            int[] intercepting = areaType.getIntercepting();
-            addPresentToArea(coords, number);
-            addPresentToArea(coords.ofOtherType(AreaType.fromId(intercepting[0])), number);
-            addPresentToArea(coords.ofOtherType(AreaType.fromId(intercepting[1])), number);
-
-            int[] normal = coords.toNormal();
-            field[normal[0]][normal[1]] = number;
-            System.out.println("Row " + (normal[0] + 1) + ", column " + (normal[1] + 1) + " found: " + number);
-            totalMissing -= 1;
-            System.out.println(totalMissing);
-        }
-
-        private void addPresentToArea(Coords coords, int number) {
-            AreaType areaType = coords.getAreaType();
-            int areaIndex = coords.getAreaIndex();
-            if (areaType.getAreaId() > 2) {
-                throw new IllegalArgumentException("Unknown AreaType " + areaType + " passed!");
-            }
-            presentNumbers[areaType.getAreaId()][areaIndex] += number;
-            missingNumbers[areaType.getAreaId()][areaIndex] =
-                    missingNumbers[areaType.getAreaId()][areaIndex].replace(Integer.toString(number), "");
-        }
-
-        public void print() {
-            for (int i = 0; i < 3; i++) {
-                System.out.println("Present in " + AreaType.fromId(i) + ": ");
-                for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
-                    System.out.println(presentNumbers[i][j]);
-                }
-            }
-
-            for (int i = 0; i < 3; i++) {
-                System.out.println("Missing in " + AreaType.fromId(i) + ": ");
-                for (int j = 0; j < MAGIC_SUDOKU_NUMBER; j++) {
-                    System.out.println(missingNumbers[i][j]);
-                }
-            }
-        }
-
-        public String getMissingInArea(Coords coords) {
-            return getMissingOrPresentInArea(coords, missingNumbers);
-        }
-
-        public String getPresentInArea(Coords coords) {
-            return getMissingOrPresentInArea(coords, presentNumbers);
-        }
-
-        private String getMissingOrPresentInArea(Coords coords, String[][] array) {
-            return array[coords.getAreaType().getAreaId()][coords.getAreaIndex()];
-        }
-
-        public boolean isFilled() {
-            return totalMissing == 0;
-        }
-
-        public int[][] getField() {
-            return field;
-        }
-
-        public int getFromField(Coords coords) {
-            int[] normal = coords.toNormal();
-            return field[normal[0]][normal[1]];
-        }
-    }
 
 
     public static void main(String[] args) {

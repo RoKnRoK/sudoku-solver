@@ -11,7 +11,7 @@ public enum Strategy {
 
     NOTHING_EXCEPT_ONE_NUMBER {
         @Override
-        public int tryFill(Coords coords, SudokuSolver.FieldInfo fieldInfo) {
+        public boolean tryFill(Coords coords, FieldInfo fieldInfo) {
             AreaType areaType = coords.getAreaType();
             Set<Character> missingInArea = stringToSet(fieldInfo.getMissingInArea(coords));
 
@@ -22,23 +22,17 @@ public enum Strategy {
             missingInArea.removeAll(presentInIntercepting1);
             missingInArea.removeAll(presentInIntercepting2);
 
-//            System.out.println(missingInArea);
             if (missingInArea.size() == 1) {
                 Character found = missingInArea.iterator().next();
-
                 fieldInfo.addPresent(coords, Character.getNumericValue(found));
-                return found;
+                return true;
             }
-//            }
-
-            return -1;
+            return false;
         }
-
-
     },
     NOWHERE_EXCEPT_ONE_CELL {
         @Override
-        public int tryFill(Coords coords, SudokuSolver.FieldInfo fieldInfo) {
+        public boolean tryFill(Coords coords, FieldInfo fieldInfo) {
             AreaType areaType = coords.getAreaType();
             List<Integer> empties = new ArrayList<>();
             List<String> canPut = new ArrayList<>();
@@ -73,16 +67,50 @@ public enum Strategy {
                 String item = split[i];
                 if (item.length() == 1) {
                     fieldInfo.addPresent(new Coords(coords.getAreaIndex(), empties.get(i), areaType), Integer.parseInt(split[i]));
+                    return true;
                 }
             }
-            return -1;
+            return false;
+        }
+    },
+
+    RANDOM_PICK {
+        @Override
+        public boolean tryFill(Coords coords, FieldInfo fieldInfo) {
+            AreaType areaType = coords.getAreaType();
+            Set<Character> missingInArea = stringToSet(fieldInfo.getMissingInArea(coords));
+
+            int[] intercepting = areaType.getIntercepting();
+            Set<Character> presentInIntercepting1 = stringToSet(fieldInfo.getPresentInArea(coords.ofOtherType(AreaType.fromId(intercepting[0]))));
+            Set<Character> presentInIntercepting2 = stringToSet(fieldInfo.getPresentInArea(coords.ofOtherType(AreaType.fromId(intercepting[1]))));
+
+            missingInArea.removeAll(presentInIntercepting1);
+            missingInArea.removeAll(presentInIntercepting2);
+
+            if (missingInArea.size() == 2) {
+                Iterator<Character> iterator = missingInArea.iterator();
+                Character firstPossibility = iterator.next();
+                Character secondPossibility = iterator.next();
+//                System.out.println("Will randomly set " + firstPossibility + " to " + Arrays.toString(coords.toNormal()) + " and see what'll happen");
+                fieldInfo.createSnapshot(coords, secondPossibility);
+                fieldInfo.addPresent(coords, Character.getNumericValue(firstPossibility));
+                return true;
+            }
+            // trying to fill cell at coords, but no missing cell calculated? that's conflict
+            if (missingInArea.size() == 0) {
+                fieldInfo.rollback();
+                return true;
+            }
+            return false;
         }
     };
 
 
-    abstract public int tryFill(Coords coords, SudokuSolver.FieldInfo fieldInfo);
 
-    private static Set<Character> stringToSet(String string) {
+
+    abstract public boolean tryFill(Coords coords, FieldInfo fieldInfo);
+
+    public static Set<Character> stringToSet(String string) {
         return string.chars().mapToObj(c -> (char) c).collect(Collectors.toSet());
     }
 
